@@ -1,0 +1,112 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<title>Password Generator by PiPi &amp; Tux</title>
+	<script type="text/javascript" src="pwdRandomizer.js"></script>
+</head>
+<body>
+
+	<div id="random-password">
+		<div id="result">
+			<input style="font-size: 18px; width: 500px" type="text" id="password" />
+			<button id="copy" onclick="doCopy();">Copy</button>
+			<br />
+			Security bit length = <span id="secBitLength" style="color: blue"></span> bits - Character set size = <span id="charsLength" style="color: #32AA3B"></span> chars
+			<br />
+			<span>Bookmark this <a target="_blank" href="" id="url">link</a> to generate password with the same settings</span>
+		</div>
+
+		<hr />
+		<div id="settings">
+			<div>
+				<label for="length">Length</label>
+				<input type="number" id="length" value="16" min="4" max="128" autofocus />
+			</div>
+			<div>
+				<input type="checkbox" id="lower" checked />
+				<label for="lowerCases">Include Lower Case (a-z)</label>
+
+			</div>
+			<div>
+				<input type="checkbox" id="upper" checked />
+				<label for="upperCases">Include Upper Case (A-Z)</label>
+
+			</div>
+			<div>
+				<input type="checkbox" id="numbers" checked />
+				<label for="numbers">Include Numbers (0-9)</label>
+
+			</div>
+			<div>
+				<input type="checkbox" id="symbols" checked />
+				<label for="symbols">Include Symbols (!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~)</label>
+
+			</div>
+			<div>
+				<input type="checkbox" id="ambiguous" />
+				<label for="ambiguous">Exclude Ambiguous (iIl1L| o0O `'-_":;.,)</label>
+
+			</div>
+			<div>
+				<input type="checkbox" id="brackets" />
+				<label for="brackets">Exclude Brackets (<>()[]{})</label>
+
+			</div>
+			<div>
+				<label for="excludes">Exclude Specials:</label>
+				<input type="text" id="excludes" />
+			</div>
+			<div>
+				<label for="includes">Include Specials:</label>
+				<input type="text" id="includes" />
+			</div>
+		</div>
+		<button id="generate" onclick="GeneratePassword()">Generate Password</button>
+		<!--<button id="reset">Reset Form</button>-->
+	</div>
+	<div>
+		Other preset links: <a target="_blank" href="?">Default</a>
+		<a target="_blank" href="?excludes=%27%2522%2526%253C%253E">XML safe</a>
+		<a target="_blank" href="?excludes=%27%2522%2526%253C%253E%255C">Code/config safe</a>
+		<a target="_blank" href="?symbols=false&ambiguous=true&includes=%21%2523%2524%2525*%252B-%252F%253D%253F%2540%255E~">Human read</a>
+		<a target="_blank" href="?symbols=false&ambiguous=true">Simple</a>
+		<a target="_blank" href="?symbols=false&includes=%252B%252F">Base64</a>
+		<a target="_blank" href="?symbols=false&includes=-_">Base64URL</a>
+		<a target="_blank" href="?lower=false&upper=false&symbols=false&includes=ABCDEF">Hexa</a>
+	</div>
+	<hr/>
+	<div>Password Generator &copy; 2022 by PiPi &amp; Tux </div>
+	<script>
+		const eLength = document.getElementById("length");
+		const eLower = document.getElementById("lower");
+		const eUpper = document.getElementById("upper");
+		const eNumbers = document.getElementById("numbers");
+		const eSymbols = document.getElementById("symbols");
+		const eExcludes = document.getElementById("excludes");
+		const eIncludes = document.getElementById("includes");
+		const ePwd = document.getElementById("password");
+		const eUrl = document.getElementById("url");
+		const eAmbiguous = document.getElementById("ambiguous");
+		const eBrackets = document.getElementById("brackets");
+		const eBitLength = document.getElementById("secBitLength");
+		const eCharsLength = document.getElementById("charsLength");
+
+		var keyElements = [eLength, eIncludes, eExcludes];
+		keyElements.forEach(ctl =>
+			ctl.addEventListener("keypress", function (event) {
+				// If the user presses the "Enter" key on the keyboard
+				if (event.key === "Enter") {
+					// Cancel the default action, if needed
+					event.preventDefault();
+					// Trigger the button element with a click
+					GeneratePassword();
+				}
+			}));
+				
+		retrieveQueryParams();
+
+		GeneratePassword();
+	</script>
+</body>
+</html>
