@@ -1,0 +1,55 @@
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>Image to Base64 Converter</title>
+		<style>
+			#editor {
+				width: 500px;
+				min-height: 40px;
+				border: solid 1px gray;
+				padding: 4px;
+			  }
+			  
+			  #resultcnt {
+				width: 100%;
+				margin-top: 16px;
+			  }
+			  
+			  #result {
+				display: block;
+				max-width: 90%;
+				margin: 16px 0 32px 0;
+				font-size: 12px;
+				color: blue;
+				overflow: visible;
+				word-break: break-all;
+			  }
+		</style>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+	</head>
+
+	<body>
+		<div id='editor' contenteditable=true></div>
+		<div id='resultcnt'>Copyed image src:<br />
+			<div id='result'></div>
+		</div>
+	</body>
+	<script type="text/javascript">
+		$(document).ready(function () {
+				$('#editor').on('paste', function (e) {
+					var orgEvent = e.originalEvent;
+					for (var i = 0; i < orgEvent.clipboardData.items.length; i++) {
+						if (orgEvent.clipboardData.items[i].kind == "file" && orgEvent.clipboardData.items[i].type == "image/png") {
+							var imageFile = orgEvent.clipboardData.items[i].getAsFile();
+							var fileReader = new FileReader();
+							fileReader.onloadend = function () {
+								$('#result').html(fileReader.result);
+							}
+							fileReader.readAsDataURL(imageFile);
+							break;
+						}
+					}
+				});
+		});
+	</script>
+</html>
