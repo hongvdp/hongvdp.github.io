@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>FC ARENA 3D - Tactical Edition</title>
+	<!-- Link đến file CSS riêng -->
+	<link rel="stylesheet" href="style.css">
+	<!-- Three.js CDN -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+
+<body>
+
+	<div id="ui-layer">
+		<div id="scoreboard">
+			<div class="team-box team-home">HOME</div>
+			<div id="score-display">0 - 0</div>
+			<div class="team-box team-away">AWAY</div>
+		</div>
+		<div id="timer">00:00</div>
+
+		<div id="goal-message">GOAL!!!</div>
+
+		<div id="formation-display">
+			<!-- Hiển thị đội hình ngẫu nhiên ở đây -->
+		</div>
+
+		<!-- Màn hình Bắt đầu -->
+		<div id="start-screen">
+			<h1>FC ARENA 3D</h1>
+			<p>Sẵn sàng ra sân?</p>
+			<button id="start-btn" onclick="startGame()">BẮT ĐẦU TRẬN ĐẤU</button>
+			<div style="margin-top: 20px; font-size: 14px; color: #ccc;">
+				Thời gian thi đấu: 4 Phút
+			</div>
+		</div>
+
+		<div id="controls-hint">
+			<div class="action-row"><span class="key">W</span><span class="key">A</span><span class="key">S</span><span
+					class="key">D</span> Di chuyển</div>
+			<div class="action-row"><span class="key">SHIFT</span> Tăng tốc</div>
+			<hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.3); margin: 6px 0;">
+			<div class="action-row"><span class="key">Chuột Trái</span> Chuyền bóng</div>
+			<div class="action-row"><span class="key">Chuột Phải</span> Sút bóng</div>
+			<div class="action-row"><span class="key">E</span> Tắc bóng</div>
+			<div class="action-row"><span class="key">SPACE</span> Nhảy / Đánh đầu</div>
+		</div>
+	</div>
+
+	<!-- Link đến file JS chính -->
+	<script src="main.js"></script>
+</body>
+
+</html>
