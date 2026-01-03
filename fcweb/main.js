@@ -2,16 +2,17 @@
 const CONFIG = {
 	pitchWidth: 130,
 	pitchLength: 200,
-	playerSpeed: 0.5,
+	playerSpeed: 0.6,
 	sprintSpeed: 1.15,
 	homeSpeedFactor: 1,
 	awaySpeedFactor: 1,
 	dribbleFactor: 0.75,
-	ballFriction: 0.96,
+	ballFriction: 0.90,
 	shootForce: 5.0,
 	passForce: 2.5,
+	lobForce: 6.2, // Lực chuyền bổng
 	tackleRange: 4.5,
-	dribbleRange: 9.0,
+	dribbleRange: 6.5,
 	headerHeight: 2.5,
 	switchPlayerRadius: 200,
 	matchDuration: 240,
@@ -79,6 +80,7 @@ const keys = {
 	shift: false,
 	space: false,
 	e: false,
+	f: false, // Phím F cho chuyền bổng
 };
 
 const actionFlags = {
@@ -86,6 +88,7 @@ const actionFlags = {
 	shoot: false,
 	tackle: false,
 	jump: false,
+	lob: false, // Cờ cho hành động lob
 };
 
 const homeNames = [
@@ -349,7 +352,11 @@ function createGoals() {
 function createBall() {
 	ball = new THREE.Mesh(
 		new THREE.SphereGeometry(1.3, 32, 32),
-		new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 })
+		new THREE.MeshStandardMaterial({
+			color: 0xffad00, // Màu cam đỏ rực
+			roughness: 0.3,
+			emissive: 0x330000, // Phát sáng nhẹ
+		})
 	);
 	ball.castShadow = true;
 	ball.position.set(0, 1.3, 0);
@@ -445,6 +452,11 @@ function handleKey(e, isDown) {
 	if (k === "e") {
 		if (isDown && !keys.e) actionFlags.tackle = true;
 		keys.e = isDown;
+	}
+	// Phím F cho chuyền bổng
+	if (k === "f") {
+		if (isDown && !keys.f) actionFlags.lob = true;
+		keys.f = isDown;
 	}
 }
 
@@ -632,6 +644,11 @@ function updatePhysics() {
 				handleTackle(p);
 				actionFlags.tackle = false;
 			}
+			// Chuyền bổng
+			if (actionFlags.lob) {
+				handleLobPass(p);
+				actionFlags.lob = false;
+			}
 
 			// --- AUTO SHOOT (HOME TEAM) ---
 			if (
@@ -670,6 +687,7 @@ function updatePhysics() {
 								-16,
 								Math.min(16, ball.position.x)
 							);
+							// GK di chuyển ngang để đón bóng
 							let dir = new THREE.Vector3(
 								targetX - p.mesh.position.x,
 								0,
@@ -684,18 +702,67 @@ function updatePhysics() {
 							moveDir.x = Math.sign(diffX) * 0.3;
 					}
 
-					if (p.mesh.position.distanceTo(ball.position) < 3.0) {
-						ball.velocity.z *= -1.2;
-						ball.velocity.x += (Math.random() - 0.5) * 2;
-						ball.velocity.y = 0.5;
+					// --- LOGIC CẢN PHÁ (BLOCK/SAVE) CẢI TIẾN ---
+					// 1. Kiểm tra khoảng cách thông thường (va chạm trực tiếp)
+					let dist = p.mesh.position.distanceTo(ball.position);
+					let caught = false;
+
+					if (dist < 3.0) {
+						caught = true;
+					}
+					// 2. Kiểm tra bóng bay ngang (Reflex Save)
+					else {
+						let diffX = Math.abs(
+							p.mesh.position.x - ball.position.x
+						);
+						let diffZ = Math.abs(
+							p.mesh.position.z - ball.position.z
+						);
+
+						// Điều kiện: Bóng ngang người (Z < 3.0) VÀ trong tầm với (X < 9.0) VÀ bóng đang bay
+						if (
+							diffZ < 3.0 &&
+							diffX < 9.0 &&
+							ball.velocity.length() > 1.0
+						) {
+							// Tự động "bay người" tới bóng (dịch chuyển vị trí GK)
+							// Lerp GK tới vị trí chặn bóng trên trục X
+							p.mesh.position.x = THREE.MathUtils.lerp(
+								p.mesh.position.x,
+								ball.position.x,
+								0.3
+							);
+
+							// Nếu đã đủ gần sau khi bay người -> Bắt/Đẩy
+							if (
+								p.mesh.position.distanceTo(ball.position) < 5.0
+							) {
+								caught = true;
+							}
+						}
+					}
+
+					if (caught) {
+						// Đẩy bóng ra xa
+						ball.velocity.z *= -0.6; // Bật ngược nhẹ hơn (cũ -0.8)
+
+						// Tạo lực đẩy sang ngang (đẩy ra biên)
+						let pushSide = ball.position.x - p.mesh.position.x;
+						if (Math.abs(pushSide) < 0.1)
+							pushSide = (Math.random() - 0.5) * 2;
+						ball.velocity.x += Math.sign(pushSide) * 2.0;
+
+						// Nảy thấp hơn (cũ: * 0.6 + 2.0)
+						ball.velocity.y = Math.abs(ball.velocity.y) * 0.3 + 0.8;
+
+						// Hiệu ứng nhảy lên
 						if (!p.isJumping) {
 							p.isJumping = true;
 							p.jumpVel = 0.8;
 						}
 						lastTouchPlayer = p;
 					}
-				} 
-                else {
+				} else {
 					if (p.team === "away") {
 						if (
 							p === closestPlayerGlobal &&
@@ -712,8 +779,7 @@ function updatePhysics() {
 							);
 							dir.y = 0;
 							moveDir.copy(dir.normalize());
-							speed *=
-								CONFIG.sprintSpeed;
+							speed *= CONFIG.sprintSpeed;
 
 							if (
 								p.mesh.position.z > 60 &&
@@ -721,8 +787,7 @@ function updatePhysics() {
 							) {
 								if (Math.random() < 0.05) handleShoot(p);
 							}
-						} 
-                        else if (p === closestAway) {
+						} else if (p === closestAway) {
 							let target = ball.position.clone();
 							let dir = new THREE.Vector3().subVectors(
 								target,
@@ -742,8 +807,7 @@ function updatePhysics() {
 									handleTackle(p);
 								}
 							}
-						} 
-                        else {
+						} else {
 							let target = getTacticalTarget(p);
 							let dir = new THREE.Vector3().subVectors(
 								target,
@@ -756,8 +820,7 @@ function updatePhysics() {
 									.multiplyScalar(0.7);
 							}
 						}
-					} 
-                    else {
+					} else {
 						if (
 							p === closestPlayerGlobal &&
 							closestDistGlobal < CONFIG.dribbleRange
@@ -773,7 +836,7 @@ function updatePhysics() {
 							);
 							dir.y = 0;
 							moveDir.copy(dir.normalize());
-							speed *= CONFIG.sprintSpeed ;
+							speed *= CONFIG.sprintSpeed;
 
 							if (
 								p.mesh.position.z < -65 &&
@@ -781,13 +844,11 @@ function updatePhysics() {
 							) {
 								if (Math.random() < 0.05) handleShoot(p);
 							}
-						} 
-                        else {
+						} else {
 							let target;
 							if (ball.position.z > 0) {
 								target = ball.position.clone();
-							} 
-                            else {
+							} else {
 								target = getTacticalTarget(p);
 							}
 
@@ -799,8 +860,7 @@ function updatePhysics() {
 								activePlayer &&
 								activePlayer.id !== p.id
 							) {
-							} 
-                            else if (distToBall < 20) {
+							} else if (distToBall < 20) {
 								target = ball.position.clone();
 							}
 
@@ -811,7 +871,7 @@ function updatePhysics() {
 							dir.y = 0;
 							if (dir.length() > 1.0) {
 								let aiSpeed = 1;
-								if (ball.position.z > 0) aiSpeed = 1.10;
+								if (ball.position.z > 0) aiSpeed = 1.1;
 								moveDir
 									.copy(dir.normalize())
 									.multiplyScalar(aiSpeed);
@@ -846,7 +906,7 @@ function updatePhysics() {
 			checkDist < CONFIG.dribbleRange &&
 			ball.position.y < 2 &&
 			!p.isGK &&
-			gameTime - lastKickTime > 0.15
+			gameTime - lastKickTime > 0.3
 		) {
 			const ballSpeed = ball.velocity.length();
 			if (ballSpeed > 8.0) {
@@ -973,6 +1033,49 @@ function handlePass(p) {
 			let passDir = facing.clone();
 			passDir.y = 0.1;
 			ball.velocity.copy(passDir.multiplyScalar(CONFIG.passForce));
+		}
+	}
+}
+
+function handleLobPass(p) {
+	const dist = p.mesh.position.distanceTo(ball.position);
+	if (dist < CONFIG.dribbleRange + 2.0) {
+		lastKickTime = gameTime;
+		lastTouchPlayer = p;
+		let bestMate = null;
+		let maxScore = -Infinity;
+		let facing = new THREE.Vector3();
+		p.mesh.getWorldDirection(facing);
+
+		players.forEach((mate) => {
+			if (mate.team === p.team && mate.id !== p.id) {
+				let dirToMate = new THREE.Vector3()
+					.subVectors(mate.mesh.position, p.mesh.position)
+					.normalize();
+				let angleScore = facing.dot(dirToMate);
+				if (angleScore > 0.5) {
+					let d = p.mesh.position.distanceTo(mate.mesh.position);
+					let score = angleScore * 100 - d;
+					if (score > maxScore) {
+						maxScore = score;
+						bestMate = mate;
+					}
+				}
+			}
+		});
+
+		ball.velocity.set(0, 0, 0);
+
+		if (bestMate) {
+			let passDir = new THREE.Vector3()
+				.subVectors(bestMate.mesh.position, p.mesh.position)
+				.normalize();
+			passDir.y = 0.5; // Góc cao cho chuyền bổng
+			ball.velocity.copy(passDir.multiplyScalar(CONFIG.lobForce));
+		} else {
+			let passDir = facing.clone();
+			passDir.y = 0.5;
+			ball.velocity.copy(passDir.multiplyScalar(CONFIG.lobForce));
 		}
 	}
 }
